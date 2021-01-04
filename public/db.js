@@ -74,4 +74,4 @@ function checkDatabase() {
 }
 
 // this event tells me when i am online or offline, and when it goes back online, it will execute checkDatabase
-window.addEventListener("online", checkDatabase());
+window.addEventListener("online", checkDatabase);
