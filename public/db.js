@@ -23,7 +23,7 @@ request.onerror = function (event) {
 };
 
 // network error kicks off saveRecord
-function saveRecord(record) {
+function saveRecord() {
   // create a transaction on the pending db with readwrite access
   const transaction = db.transaction(["pending"], "readwrite");
 
@@ -31,7 +31,16 @@ function saveRecord(record) {
   const store = transaction.objectStore("pending");
 
   // add record to your store with add method.
-  store.add(record);
+  const getCursorRequest = store.openCursor()
+  getCursorRequest.onsuccess = event => {
+    const cursor = event.target.result
+    if (cursor) {
+      console.log(cursor.value);
+      cursor.continue()
+    } else {
+      console.log("No more results")
+    }
+  }
 }
 
 function clearStore(){
@@ -48,19 +57,21 @@ function checkDatabase() {
   // get all records from store and set to a variable
   const getAll = store.getAll();
   console.log(getAll)
-
-  const getCursorRequest = store.openCursor()
-  getCursorRequest.onsuccess = event => {
-    const cursor = event.target.result
-    if (cursor) {
-      console.log(cursor.value);
-      cursor.continue()
-    } else {
-      console.log("No more results")
-    }
-  }
-clearStore
+  getAll.onsuccess = function() {
+  if (getAll.result.length > 0) {
+    fetch("/api/transaction/bulk", {
+      method: "POST",
+      body: JSON.stringify(getAll.result),
+      headers: {
+        Accept: "application/json, text/plain, */*",
+        "Content-Type": "application/json"
+      }
+    })
+    .then(response => response.json())
+    .then(clearStore())
+}
+}
 }
 
 // this event tells me when i am online or offline, and when it goes back online, it will execute checkDatabase
-window.addEventListener("online", checkDatabase);
+window.addEventListener("online", checkDatabase());
