@@ -39,22 +39,17 @@ function checkDatabase() {
   const store = transaction.objectStore("pending");
   // get all records from store and set to a variable
   const getAll = store.getAll();
-  
+  console.log(getAll)
+
   // offlineTransactions.push(getAll)
   // console.log(offlineTransactions)
   // can do a cursor request
  const getCursorRequest = getAll.openCursor()
-  getCursorRequest.onsuccess = function() {
-    var offlineTransactions = []
-    if (getAll.result.length > 0) {
-      fetch("/api/transaction/bulk", {
-        method: "POST",
-        body: JSON.stringify(getAll.result),
-        headers: {
-          Accept: "application/json, text/plain, */*",
-          "Content-Type": "application/json"
-        }
-      })
+  getCursorRequest.onsuccess = event => {
+    const cursor = event.target.result
+    if (cursor) {
+      console.log(cursor.value);
+      cursor.continue()
       .then(response => response.json())
       .then(() => {
         // this clears out the indexedDB objectstore
@@ -62,9 +57,24 @@ function checkDatabase() {
         const store = transaction.objectStore("pending");
         store.clear();
       });
+    } else {
+      console.log("All done!")
     }
-  };
-}
+  }
+    // var offlineTransactions = []
+    // if (getAll.result.length > 0) {
+    //   fetch("/api/transaction/bulk", {
+    //     method: "POST",
+    //     body: JSON.stringify(getAll.result),
+    //     headers: {
+    //       Accept: "application/json, text/plain, */*",
+    //       "Content-Type": "application/json"
+    //     }
+    //   })
+      
+    }
+//   };
+// }
 
 // this event tells me when i am online or offline, and when it goes back online, it will execute checkDatabase
 window.addEventListener("online", checkDatabase);
