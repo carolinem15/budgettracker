@@ -2,13 +2,15 @@ let db;
 // open a new DB called budget
 const request = indexedDB.open("budget", 1);
 
-request.onupgradeneeded = function(event) {
-   // create object store
+request.onupgradeneeded = function (event) {
+  // create object store
   const db = event.target.result;
-  db.createObjectStore("pending", { autoIncrement: true });
+  db.createObjectStore("pending", {
+    autoIncrement: true
+  });
 };
 
-request.onsuccess = function(event) {
+request.onsuccess = function (event) {
   db = event.target.result;
   // check if app is online, then execute checkDatabase
   if (window.navigator.onLine) {
@@ -16,7 +18,7 @@ request.onsuccess = function(event) {
   }
 };
 
-request.onerror = function(event) {
+request.onerror = function (event) {
   console.log(event.target.errorCode);
 };
 
@@ -32,6 +34,12 @@ function saveRecord(record) {
   store.add(record);
 }
 
+function clearStore(){
+  const transaction = db.transaction(["pending"], "readwrite");
+  const store = transaction.objectStore("pending");
+  store.clear();
+}
+
 function checkDatabase() {
   // open a transaction on your pending db
   const transaction = db.transaction(["pending"], "readwrite");
@@ -41,25 +49,18 @@ function checkDatabase() {
   const getAll = store.getAll();
   console.log(getAll)
 
- const getCursorRequest = store.openCursor()
+  const getCursorRequest = store.openCursor()
   getCursorRequest.onsuccess = event => {
     const cursor = event.target.result
     if (cursor) {
       console.log(cursor.value);
       cursor.continue()
-      .then(response => response.json())
-      .then(() => {
-        // this clears out the indexedDB objectstore
-        const transaction = db.transaction(["pending"], "readwrite");
-        const store = transaction.objectStore("pending");
-        store.clear();
-      });
     } else {
-      console.log("All done!")
+      console.log("No more results")
     }
   }
-      
-    }
+clearStore
+}
 
 // this event tells me when i am online or offline, and when it goes back online, it will execute checkDatabase
 window.addEventListener("online", checkDatabase);
