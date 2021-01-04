@@ -1,26 +1,26 @@
 let db;
-// create a new db request for a "budget" database.
+// open a new DB called budget
 const request = indexedDB.open("budget", 1);
 
 request.onupgradeneeded = function(event) {
-   // create object store called "pending" and set autoIncrement to true
+   // create object store
   const db = event.target.result;
   db.createObjectStore("pending", { autoIncrement: true });
 };
 
 request.onsuccess = function(event) {
   db = event.target.result;
-
-  // check if app is online before reading from db
-  if (navigator.onLine) {
+  // check if app is online, then execute checkDatabase
+  if (window.navigator.onLine) {
     checkDatabase();
   }
 };
 
 request.onerror = function(event) {
-  console.log("Woops! " + event.target.errorCode);
+  console.log(event.target.errorCode);
 };
 
+// network error kicks off saveRecord
 function saveRecord(record) {
   // create a transaction on the pending db with readwrite access
   const transaction = db.transaction(["pending"], "readwrite");
@@ -39,8 +39,13 @@ function checkDatabase() {
   const store = transaction.objectStore("pending");
   // get all records from store and set to a variable
   const getAll = store.getAll();
-
-  getAll.onsuccess = function() {
+  
+  // offlineTransactions.push(getAll)
+  // console.log(offlineTransactions)
+  // can do a cursor request
+ const getCursorRequest = getAll.openCursor()
+  getCursorRequest.onsuccess = function() {
+    var offlineTransactions = []
     if (getAll.result.length > 0) {
       fetch("/api/transaction/bulk", {
         method: "POST",
@@ -52,13 +57,9 @@ function checkDatabase() {
       })
       .then(response => response.json())
       .then(() => {
-        // if successful, open a transaction on your pending db
+        // this clears out the indexedDB objectstore
         const transaction = db.transaction(["pending"], "readwrite");
-
-        // access your pending object store
         const store = transaction.objectStore("pending");
-
-        // clear all items in your store
         store.clear();
       });
     }
